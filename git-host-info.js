@@ -1,6 +1,10 @@
 'use strict'
 
 var gitHosts = module.exports = {
+  otherHosts: {
+    'protocols': [ 'git+ssh', 'git+https', 'ssh', 'https' ],
+    'treepath': 'tree'
+  },
   github: {
     // First two are insecure and generally shouldn't be used any more, but
     // they are still supported.
