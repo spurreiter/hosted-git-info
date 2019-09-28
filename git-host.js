@@ -18,9 +18,10 @@ var extend = Object.assign || function _extend (target, source) {
 }
 
 module.exports = GitHost
-function GitHost (type, user, auth, project, committish, defaultRepresentation, opts) {
+function GitHost (type, user, auth, project, committish, defaultRepresentation, opts, domain) {
   var gitHostInfo = this
   gitHostInfo.type = type
+  gitHostInfo.domain = domain
   Object.keys(gitHosts[type]).forEach(function (key) {
     gitHostInfo[key] = gitHosts[type][key]
   })

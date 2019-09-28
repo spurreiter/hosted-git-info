@@ -58,6 +58,7 @@ Implications:
 * *options* is an optional object. It can have the following properties:
   * *noCommittish* — If true then committishes won't be included in generated URLs.
   * *noGitPlus* — If true then `git+` won't be prefixed on URLs.
+  * *allowOtherHosts* - If true then other hosts will be parsed as well
 
 ## Methods
 

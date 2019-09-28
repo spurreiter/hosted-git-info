@@ -12,6 +12,8 @@ var protocolToRepresentationMap = {
   'git:': 'git'
 }
 
+var OTHER_HOSTS = 'otherHosts'
+
 function protocolToRepresentation (protocol) {
   return protocolToRepresentationMap[protocol] || protocol.slice(0, -1)
 }
@@ -42,7 +44,9 @@ function fromUrl (giturl, opts) {
   )
   var parsed = parseGitUrl(url)
   var shortcutMatch = url.match(new RegExp('^([^:]+):(?:(?:[^@:]+(?:[^@]+)?@)?([^/]*))[/](.+?)(?:[.]git)?($|#)'))
-  var matches = Object.keys(gitHosts).map(function (gitHostName) {
+
+  function matcher (gitHostName, allowOtherHosts) {
+    if (!allowOtherHosts && gitHostName === OTHER_HOSTS) return
     try {
       var gitHostInfo = gitHosts[gitHostName]
       var auth = null
@@ -53,12 +57,13 @@ function fromUrl (giturl, opts) {
       var user = null
       var project = null
       var defaultRepresentation = null
+      var domain = null
       if (shortcutMatch && shortcutMatch[1] === gitHostName) {
         user = shortcutMatch[2] && decodeURIComponent(shortcutMatch[2])
         project = decodeURIComponent(shortcutMatch[3])
         defaultRepresentation = 'shortcut'
       } else {
-        if (parsed.host && parsed.host !== gitHostInfo.domain && parsed.host.replace(/^www[.]/, '') !== gitHostInfo.domain) return
+        if (!allowOtherHosts && parsed.host && parsed.host !== gitHostInfo.domain && parsed.host.replace(/^www[.]/, '') !== gitHostInfo.domain) return
         if (!gitHostInfo.protocols_re.test(parsed.protocol)) return
         if (!parsed.path) return
         var pathmatch = gitHostInfo.pathmatch
@@ -68,15 +73,27 @@ function fromUrl (giturl, opts) {
           user = decodeURIComponent(matched[1].replace(/^:/, ''))
         }
         project = decodeURIComponent(matched[2])
+        domain = parsed.host
         defaultRepresentation = protocolToRepresentation(parsed.protocol)
       }
-      return new GitHost(gitHostName, user, auth, project, committish, defaultRepresentation, opts)
+      return new GitHost(gitHostName, user, auth, project, committish, defaultRepresentation, opts, domain)
     } catch (ex) {
       /* istanbul ignore else */
       if (ex instanceof URIError) {
       } else throw ex
     }
-  }).filter(function (gitHostInfo) { return gitHostInfo })
+  }
+
+  // Do not optimize - first try known hosts
+  var matches = Object.keys(gitHosts)
+    .map(function (gitHostName) { return matcher(gitHostName) })
+    .filter(function (gitHostInfo) { return gitHostInfo })
+
+  // second try with any host
+  if (opts && opts.allowOtherHosts && !matches.length) {
+    return matcher(OTHER_HOSTS, true)
+  }
+
   if (matches.length !== 1) return
   return matches[0]
 }
